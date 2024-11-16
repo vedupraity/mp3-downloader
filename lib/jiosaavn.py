@@ -1,3 +1,6 @@
+import requests
+
+
 SAAVN_API_HEADERS = {
     "authority": "saavn.dev",
     "accept": "application/json, text/plain, */*",
@@ -15,14 +18,14 @@ SAAVN_API_HEADERS = {
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0",
 }
 
-def search_songs(query: string):
+def search_songs(query: str):
     url = "https://saavn.dev/api/search/songs"
     headers = SAAVN_API_HEADERS
     params = {"query": query, "limit": 10}
     response = requests.get(url, params=params, headers=headers)
 
     if response.status_code != 200:
-        print(f"Error while fetching by keywords: {' '.join(keywords)}")
+        print(f"Error while fetching results by query: {query}")
         print(f"HTTP {response.status_code}")
         print(response.text)
         return []
