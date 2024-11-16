@@ -59,36 +59,44 @@ def get_logger(name=None):
     -----
     Import the logger into your module:
 
-        from config.logger import get_logger
+    ```
+    from config.logger import get_logger
+    ```
 
     Create a logger instance for your module:
 
-        logger = get_logger(__name__)
+    ```
+    logger = get_logger(__name__)
+    ```
 
     Use the logger to log messages at different severity levels along with respestive colors:
 
+    ```
+    logger.debug("This is a debug message")
+    logger.info("This is an info message")
+    logger.warning("This is a warning")
+    logger.error("This is an error message")
+    logger.critical("This is a critical message")
+    ```
+
+    Example:
+    --------
+
+    ```
+    from config.logger import get_logger
+
+    logger = get_logger(__name__)
+
+    def main() -> None:
         logger.debug("This is a debug message")
         logger.info("This is an info message")
         logger.warning("This is a warning")
         logger.error("This is an error message")
         logger.critical("This is a critical message")
 
-    Example:
-    --------
-
-        from config.logger import get_logger
-
-        logger = get_logger(__name__)
-
-        def main() -> None:
-            logger.debug("This is a debug message")
-            logger.info("This is an info message")
-            logger.warning("This is a warning")
-            logger.error("This is an error message")
-            logger.critical("This is a critical message")
-
-        if __name__ == "__main__":
-            main()
+    if __name__ == "__main__":
+        main()
+    ```
     """
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)  # Set desired level
