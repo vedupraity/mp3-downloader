@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.split-urls.outputs.matrix }}
+      matrix_length: ${{ steps.split-urls.outputs.matrix_length }}
     steps:
       - name: Split URLs
         id: split-urls
@@ -30,7 +31,10 @@ jobs:
           done
           urls_json=$(printf "[%s]" "$(IFS=,; echo "${urls_array[*]}")")
           echo "Matrix: $urls_json"
-          echo "::set-output name=matrix::$urls_json"
+          echo "matrix=$urls_json" >> $GITHUB_OUTPUT
+          # Output the length of the matrix
+          matrix_length=${#urls_array[@]}
+          echo "matrix_length=$matrix_length" >> $GITHUB_OUTPUT
 
   downloader:
     needs: prepare
@@ -57,26 +61,25 @@ jobs:
           mkdir -p $OUTPUT_DIR
           python main.py "${{ matrix.url }}" --output $OUTPUT_DIR
 
-      - name: Save Output
-        uses: actions/cache@v3
+      - name: Upload Output
+        uses: actions/upload-artifact@v4
         with:
+          name: output-${{ matrix.index }}
           path: $OUTPUT_DIR
-          key: output-${{ matrix.index }}
 
   consolidate:
     needs: downloader
     runs-on: ubuntu-latest
     steps:
-      - name: Restore Outputs
-        uses: actions/cache@v3
+      - name: Download All Outputs
+        uses: actions/download-artifact@v4
         with:
           path: outputs
-          key: output-
 
       - name: Consolidate Outputs
         run: |
           mkdir -p consolidated_output
-          for dir in output_*; do
+          for dir in outputs/output-*; do
             cp -r "$dir"/* consolidated_output/
           done
 
