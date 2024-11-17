@@ -51,15 +51,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # - uses: FedericoCarboni/setup-ffmpeg@v3
+      - uses: FedericoCarboni/setup-ffmpeg@v3
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
-
-      - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Install Dependencies
         run: |
@@ -96,3 +93,20 @@ jobs:
         with:
           name: output-${{ github.run_number }}
           path: consolidated_output
+
+      - name: Install GH CLI
+        uses: dev-hanz-ops/install-gh-cli-action@v0.2.0
+
+      - name: Delete Intermediate Artifacts
+        run: |
+          # Get all artifacts for this run
+          artifacts=$(gh api -X GET /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate | jq -r '.artifacts[] | select(.name | startswith("temp-output-")) | .id')
+          echo "Artifacts to delete: $artifacts"
+
+          # Loop through each artifact ID and delete it
+          for artifact_id in $artifacts; do
+            echo "Deleting artifact ID: $artifact_id"
+            gh api -X DELETE /repos/${{ github.repository }}/actions/artifacts/$artifact_id
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
