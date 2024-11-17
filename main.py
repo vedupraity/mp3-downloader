@@ -41,6 +41,8 @@ def main() -> None:
 
             song_info = jiosaavn.get_song_info_by_url(args.url)
             jiosaavn.download_and_save_song(song_info, output_dir_path)
+        else:
+            logger.warning(f"Unsupported url {args.url}")
     else:
         logger.warning(f"Unsupported domain {url_domain}")
 

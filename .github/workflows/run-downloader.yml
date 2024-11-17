@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
@@ -29,7 +29,6 @@ jobs:
           python main.py "${{ inputs.urls }}"
 
       - name: Save output
-        uses: actions/cache/save@v4
+        uses: actions/upload-artifact@v4
         with:
-          path: ./output
-          key: output-${{ github.run_number }}
+          path: output
