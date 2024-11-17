@@ -14,33 +14,41 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.split-urls.outputs.matrix }}
-      matrix_length: ${{ steps.split-urls.outputs.matrix_length }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - name: Split URLs
-        id: split-urls
+      - name: Split URLs and Generate IDs
+        id: set-matrix
         shell: bash
         run: |
           echo "Splitting URLs..."
           urls="${{ github.event.inputs.urls }}"
-          urls_array=()
           IFS=',' read -ra ADDR <<< "$urls"
-          for idx in "${!ADDR[@]}"; do
-            url=$(echo "${ADDR[$idx]}" | xargs)
-            urls_array+=("{\"url\": \"$url\", \"index\": $idx}")
+
+          # Initialize an empty array for JSON objects
+          matrix_entries=()
+
+          index=0
+          for url in "${ADDR[@]}"; do
+            trimmed_url=$(echo "$url" | xargs)
+            # Generate a hash using sha256sum
+            url_hash=$(echo -n "$trimmed_url" | sha256sum | cut -d' ' -f1)
+            # Create a JSON object with url and id
+            json_entry=$(jq -n --arg url "$trimmed_url" --arg id "$url_hash" '{url: $url, id: $id}')
+            matrix_entries+=("$json_entry")
+            ((index++))
           done
-          urls_json=$(printf "[%s]" "$(IFS=,; echo "${urls_array[*]}")")
-          echo "Matrix: $urls_json"
-          echo "matrix=$urls_json" >> $GITHUB_OUTPUT
-          # Output the length of the matrix
-          matrix_length=${#urls_array[@]}
-          echo "matrix_length=$matrix_length" >> $GITHUB_OUTPUT
+
+          # Combine all JSON objects into a JSON array
+          matrix_json=$(printf '%s\n' "${matrix_entries[@]}" | jq -s '.')
+          echo "matrix=$matrix_json" >> "$GITHUB_OUTPUT"
+          echo "Matrix JSON: $matrix_json"
 
   downloader:
     needs: prepare
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+      matrix:
+        include: ${{ fromJson(needs.prepare.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -57,15 +65,15 @@ jobs:
 
       - name: Run Downloader
         run: |
-          OUTPUT_DIR="output_${{ matrix.index }}"
-          mkdir -p $OUTPUT_DIR
-          python main.py "${{ matrix.url }}" --output $OUTPUT_DIR
+          OUTPUT_DIR="output_${{ matrix.id }}"
+          mkdir -p "$OUTPUT_DIR"
+          python main.py "${{ matrix.url }}" --output "$OUTPUT_DIR"
 
       - name: Upload Output
         uses: actions/upload-artifact@v4
         with:
-          name: output-${{ matrix.index }}
-          path: $OUTPUT_DIR
+          name: output-${{ matrix.id }}
+          path: "$OUTPUT_DIR"
 
   consolidate:
     needs: downloader
@@ -79,7 +87,7 @@ jobs:
       - name: Consolidate Outputs
         run: |
           mkdir -p consolidated_output
-          for dir in outputs/output-*; do
+          for dir in outputs/*; do
             cp -r "$dir"/* consolidated_output/
           done
 
