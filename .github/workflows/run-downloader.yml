@@ -16,33 +16,25 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - name: Split URLs and Generate IDs
+      - name: Split URLs and Prepare Matrix
         id: set-matrix
         shell: bash
         run: |
-          set -euxo pipefail
           echo "Splitting URLs..."
           urls="${{ github.event.inputs.urls }}"
-          echo "urls: $urls"
           IFS=',' read -ra ADDR <<< "$urls"
-          echo "ADDR: ${ADDR[@]}"
+          echo "Input URLs: ${ADDR[@]}"
 
           # Initialize an empty array for JSON objects
           matrix_entries=()
-
           index=0
           for url in "${ADDR[@]}"; do
-            echo "Processing URL: $url"
             trimmed_url=$(echo "$url" | xargs)
-            echo "Trimmed URL: $trimmed_url"
-            # Generate a hash using sha256sum
-            url_hash=$(echo -n "$trimmed_url" | sha256sum | cut -d' ' -f1)
-            echo "URL Hash: $url_hash"
+            echo "Processing URL $index: $trimmed_url"
             # Create a JSON object with url and id
-            json_entry=$(jq -n --arg url "$trimmed_url" --arg id "$url_hash" '{url: $url, id: $id}')
-            echo "JSON Entry: $json_entry"
+            json_entry=$(jq -n --arg url "$trimmed_url" --arg id "$index" '{url: $url, id: $id}')
             matrix_entries+=("$json_entry")
-            ((index++))
+            index=$((index + 1))
           done
 
           # Combine all JSON objects into a JSON array
@@ -57,49 +49,50 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.prepare.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - run: echo "url ${{ matrix.url }}"
+  #     - uses: actions/checkout@v4
 
-      - uses: FedericoCarboni/setup-ffmpeg@v3
+  #     - uses: FedericoCarboni/setup-ffmpeg@v3
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.12"
+  #         cache: pip
 
-      - name: Install Dependencies
-        run: |
-          python -m pip install -r requirements.txt
+  #     - name: Install Dependencies
+  #       run: |
+  #         python -m pip install -r requirements.txt
 
-      - name: Run Downloader
-        run: |
-          OUTPUT_DIR="output_${{ matrix.id }}"
-          mkdir -p "$OUTPUT_DIR"
-          python main.py "${{ matrix.url }}" --output "$OUTPUT_DIR"
+  #     - name: Run Downloader
+  #       run: |
+  #         OUTPUT_DIR="output_${{ matrix.id }}"
+  #         mkdir -p "$OUTPUT_DIR"
+  #         python main.py "${{ matrix.url }}" --output "$OUTPUT_DIR"
 
-      - name: Upload Output
-        uses: actions/upload-artifact@v4
-        with:
-          name: output-${{ matrix.id }}
-          path: "$OUTPUT_DIR"
+  #     - name: Upload Output
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: output-${{ matrix.id }}
+  #         path: "$OUTPUT_DIR"
 
-  consolidate:
-    needs: downloader
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download All Outputs
-        uses: actions/download-artifact@v4
-        with:
-          path: outputs
+  # consolidate:
+  #   needs: downloader
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Download All Outputs
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         path: outputs
 
-      - name: Consolidate Outputs
-        run: |
-          mkdir -p consolidated_output
-          for dir in outputs/*; do
-            cp -r "$dir"/* consolidated_output/
-          done
+  #     - name: Consolidate Outputs
+  #       run: |
+  #         mkdir -p consolidated_output
+  #         for dir in outputs/*; do
+  #           cp -r "$dir"/* consolidated_output/
+  #         done
 
-      - name: Upload Consolidated Output
-        uses: actions/upload-artifact@v4
-        with:
-          name: output-${{ github.run_number }}
-          path: consolidated_output
+  #     - name: Upload Consolidated Output
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: output-${{ github.run_number }}
+  #         path: consolidated_output
