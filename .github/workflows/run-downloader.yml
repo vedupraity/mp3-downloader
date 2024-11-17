@@ -49,50 +49,49 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.prepare.outputs.matrix) }}
     steps:
-      - run: echo "url ${{ matrix.url }}"
-  #     - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-  #     - uses: FedericoCarboni/setup-ffmpeg@v3
+      - uses: FedericoCarboni/setup-ffmpeg@v3
 
-  #     - uses: actions/setup-python@v5
-  #       with:
-  #         python-version: "3.12"
-  #         cache: pip
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
 
-  #     - name: Install Dependencies
-  #       run: |
-  #         python -m pip install -r requirements.txt
+      - name: Install Dependencies
+        run: |
+          python -m pip install -r requirements.txt
 
-  #     - name: Run Downloader
-  #       run: |
-  #         OUTPUT_DIR="output_${{ matrix.id }}"
-  #         mkdir -p "$OUTPUT_DIR"
-  #         python main.py "${{ matrix.url }}" --output "$OUTPUT_DIR"
+      - name: Run Downloader
+        run: |
+          OUTPUT_DIR="output_${{ matrix.id }}"
+          mkdir -p "$OUTPUT_DIR"
+          python main.py "${{ matrix.url }}" --output "$OUTPUT_DIR"
 
-  #     - name: Upload Output
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: output-${{ matrix.id }}
-  #         path: "$OUTPUT_DIR"
+      - name: Upload Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: temp-output-${{ matrix.id }}
+          path: "$OUTPUT_DIR"
 
-  # consolidate:
-  #   needs: downloader
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Download All Outputs
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         path: outputs
+  consolidate:
+    needs: downloader
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download All Outputs
+        uses: actions/download-artifact@v4
+        with:
+          path: outputs
 
-  #     - name: Consolidate Outputs
-  #       run: |
-  #         mkdir -p consolidated_output
-  #         for dir in outputs/*; do
-  #           cp -r "$dir"/* consolidated_output/
-  #         done
+      - name: Consolidate Outputs
+        run: |
+          mkdir -p consolidated_output
+          for dir in outputs/*; do
+            cp -r "$dir"/* consolidated_output/
+          done
 
-  #     - name: Upload Consolidated Output
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: output-${{ github.run_number }}
-  #         path: consolidated_output
+      - name: Upload Consolidated Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: output-${{ github.run_number }}
+          path: consolidated_output
