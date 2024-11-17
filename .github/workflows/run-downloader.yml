@@ -39,9 +39,10 @@ jobs:
           path: .venv
       - name: Run downloader
         run: |
+          source .venv/bin/activate
           python main.py ${{ inputs.urls }}
       - name: Save output
         uses: actions/cache/save@v4
         with:
           path: ./output
-          key: output-${{ inputs.urls }}
+          key: output-${{ github.run_number }}
