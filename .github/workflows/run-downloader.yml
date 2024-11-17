@@ -4,16 +4,39 @@ on:
   workflow_dispatch:
     inputs:
       urls:
-        description: "Comma separated urls to download"
+        description: "Comma-separated URLs to download"
         required: true
 
 permissions:
   contents: read
 
 jobs:
-  downloader:
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.split-urls.outputs.matrix }}
+    steps:
+      - name: Split URLs
+        id: split-urls
+        shell: bash
+        run: |
+          echo "Splitting URLs..."
+          urls="${{ github.event.inputs.urls }}"
+          urls_array=()
+          IFS=',' read -ra ADDR <<< "$urls"
+          for idx in "${!ADDR[@]}"; do
+            url=$(echo "${ADDR[$idx]}" | xargs)
+            urls_array+=("{\"url\": \"$url\", \"index\": $idx}")
+          done
+          urls_json=$(printf "[%s]" "$(IFS=,; echo "${urls_array[*]}")")
+          echo "Matrix: $urls_json"
+          echo "::set-output name=matrix::$urls_json"
 
+  downloader:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,10 +53,35 @@ jobs:
 
       - name: Run Downloader
         run: |
-          python main.py "${{ inputs.urls }}"
+          OUTPUT_DIR="output_${{ matrix.index }}"
+          mkdir -p $OUTPUT_DIR
+          python main.py "${{ matrix.url }}" --output $OUTPUT_DIR
 
-      - name: Save output
+      - name: Save Output
+        uses: actions/cache@v3
+        with:
+          path: $OUTPUT_DIR
+          key: output-${{ matrix.index }}
+
+  consolidate:
+    needs: downloader
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore Outputs
+        uses: actions/cache@v3
+        with:
+          path: outputs
+          key: output-
+
+      - name: Consolidate Outputs
+        run: |
+          mkdir -p consolidated_output
+          for dir in output_*; do
+            cp -r "$dir"/* consolidated_output/
+          done
+
+      - name: Upload Consolidated Output
         uses: actions/upload-artifact@v4
         with:
           name: output-${{ github.run_number }}
-          path: output
+          path: consolidated_output
