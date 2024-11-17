@@ -21,16 +21,19 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
 
-      - name: Run downloader
+      - name: Install Dependencies
         run: |
           python -m pip install -r requirements.txt
-          pip freeze
+
+      - name: Run Downloader
+        run: |
           python main.py "${{ inputs.urls }}"
 
       - name: Save output
         uses: actions/upload-artifact@v4
         with:
+          name: output-${{ github.run_number }}
           path: output
