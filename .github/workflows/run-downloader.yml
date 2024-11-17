@@ -38,7 +38,7 @@ jobs:
           done
 
           # Combine all JSON objects into a JSON array
-          matrix_json=$(printf '%s\n' "${matrix_entries[@]}" | jq -s '.')
+          matrix_json=$(printf '%s\n' "${matrix_entries[@]}" | jq -c -s '.')
           echo "matrix=$matrix_json" >> "$GITHUB_OUTPUT"
           echo "Matrix JSON: $matrix_json"
 
