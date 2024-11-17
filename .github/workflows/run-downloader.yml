@@ -27,6 +27,7 @@ jobs:
 
       - name: Run downloader
         run: |
+          pip freeze
           python main.py ${{ inputs.urls }}
 
       - name: Save output
