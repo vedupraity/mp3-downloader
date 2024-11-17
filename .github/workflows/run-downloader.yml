@@ -64,15 +64,13 @@ jobs:
 
       - name: Run Downloader
         run: |
-          OUTPUT_DIR="output_${{ matrix.id }}"
-          mkdir -p "$OUTPUT_DIR"
-          python main.py "${{ matrix.url }}" --output "$OUTPUT_DIR"
+          python main.py "${{ matrix.url }}"
 
       - name: Upload Output
         uses: actions/upload-artifact@v4
         with:
           name: temp-output-${{ matrix.id }}
-          path: "$OUTPUT_DIR"
+          path: output
 
   consolidate:
     needs: downloader
