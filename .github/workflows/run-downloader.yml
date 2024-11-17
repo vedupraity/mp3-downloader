@@ -16,31 +16,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v3
-        id: setup_python
+
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.12"
-      - name: Restore cached virtualenv
-        uses: actions/cache/restore@v4
-        with:
-          key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
-          path: .venv
-      - name: Install dependencies
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          python -m pip install -r requirements.txt
-          echo "$VIRTUAL_ENV/bin" >> $GITHUB_PATH
-          echo "VIRTUAL_ENV=$VIRTUAL_ENV" >> $GITHUB_ENV
-      - name: Saved cached virtualenv
-        uses: actions/cache/save@v4
-        with:
-          key: venv-${{ runner.os }}-${{ steps.setup_python.outputs.python-version }}-${{ hashFiles('requirements.txt') }}
-          path: .venv
+          cache: pip
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
       - name: Run downloader
         run: |
-          source .venv/bin/activate
           python main.py ${{ inputs.urls }}
+
       - name: Save output
         uses: actions/cache/save@v4
         with:
