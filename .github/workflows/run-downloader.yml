@@ -20,20 +20,27 @@ jobs:
         id: set-matrix
         shell: bash
         run: |
+          set -euxo pipefail
           echo "Splitting URLs..."
           urls="${{ github.event.inputs.urls }}"
+          echo "urls: $urls"
           IFS=',' read -ra ADDR <<< "$urls"
+          echo "ADDR: ${ADDR[@]}"
 
           # Initialize an empty array for JSON objects
           matrix_entries=()
 
           index=0
           for url in "${ADDR[@]}"; do
+            echo "Processing URL: $url"
             trimmed_url=$(echo "$url" | xargs)
+            echo "Trimmed URL: $trimmed_url"
             # Generate a hash using sha256sum
             url_hash=$(echo -n "$trimmed_url" | sha256sum | cut -d' ' -f1)
+            echo "URL Hash: $url_hash"
             # Create a JSON object with url and id
             json_entry=$(jq -n --arg url "$trimmed_url" --arg id "$url_hash" '{url: $url, id: $id}')
+            echo "JSON Entry: $json_entry"
             matrix_entries+=("$json_entry")
             ((index++))
           done
