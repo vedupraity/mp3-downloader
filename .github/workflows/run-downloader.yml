@@ -15,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
-      cookies_netscape_content: ${{ steps.cookies.outputs.cookies_netscape_content }}
     steps:
       - uses: actions/checkout@v4
 
@@ -45,13 +44,6 @@ jobs:
           echo "matrix=$matrix_json" >> "$GITHUB_OUTPUT"
           echo "Matrix JSON: $matrix_json"
 
-      - name: Prepare cookies
-        id: cookies
-        run: |
-          echo "${{ secrets.YOUTUBE_COOKIE_RAW }}" > cookies_raw.txt
-          cookies_netscape_content=$(node utils/convert-cookies.js cookies_raw.txt)
-          echo "cookies_netscape_content=$cookies_netscape_content" >> "$GITHUB_OUTPUT"
-
   downloader:
     needs: prepare
     runs-on: ubuntu-latest
@@ -72,9 +64,13 @@ jobs:
         run: |
           python -m pip install -r requirements.txt
 
+      - name: Prepare cookies
+        run: |
+          echo "${{ secrets.YOUTUBE_COOKIE_RAW }}" > cookies_raw.txt
+          node utils/convert-cookies.js ./cookies_raw.txt > ./cookies_netscape.txt
+
       - name: Run Downloader
         run: |
-          echo "${{ needs.prepare.outputs.cookies_netscape_content }}" > cookies_netscape.txt
           python main.py "${{ matrix.url }}"
 
       - name: Upload Output
