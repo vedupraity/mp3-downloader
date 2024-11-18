@@ -19,7 +19,8 @@
             "program": "${workspaceFolder}/main.py",
             "args": [
                 // "https://www.jiosaavn.com/song/nirvana-shatakam/PCcxfgZlQ1w"
-                "https://youtu.be/tzzH6bgozys?si=lvX2QL7U1tugEvjs"
+                // "https://youtu.be/tzzH6bgozys?si=lvX2QL7U1tugEvjs"
+                "https://youtu.be/9NK7OTKEJvc?si=lA8YkEU9QpFslJuw"
             ],
             "console": "integratedTerminal",
             "python": "${command:python.interpreterPath}"

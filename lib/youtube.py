@@ -16,15 +16,15 @@ class YouTube:
     def update_meta_info_of_song(self, context: dict):
         if context["status"] == "finished" and context["postprocessor"] == "Metadata":
             song_dir = context["info_dict"]["__finaldir"]
-            saved_song_name = context["info_dict"]["filepath"].split("\\")[1]
+            saved_song_path = context["info_dict"]["filepath"]
             new_song_name = clean_text(context["info_dict"]["title"]) + ".mp3"
 
-            if os.path.exists(os.path.join(song_dir, saved_song_name)):
+            if os.path.exists(saved_song_path):
                 if os.path.exists(os.path.join(song_dir, new_song_name)):
                     os.remove(os.path.join(song_dir, new_song_name))
 
                 os.rename(
-                    os.path.join(song_dir, saved_song_name),
+                    saved_song_path,
                     os.path.join(song_dir, new_song_name),
                 )
 
@@ -43,6 +43,9 @@ class YouTube:
                     top = (height - width) / 2
                     bottom = top + width
                     image = image.crop((0, top, width, bottom))
+
+                if width > 500 or height > 500:
+                    image = image.resize((500, 500))
 
                 image_buffer = BytesIO()
                 image.save(image_buffer, format="JPEG")
