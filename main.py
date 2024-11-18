@@ -5,6 +5,7 @@ import tldextract
 
 from config.logger import get_logger
 from lib.jiosaavn import JioSaavn
+from lib.youtube import YouTube
 
 
 logger = get_logger(__name__)
@@ -43,6 +44,10 @@ def main() -> None:
             jiosaavn.download_and_save_song(song_info, output_dir_path)
         else:
             logger.warning(f"Unsupported url {args.url}")
+    elif url_domain and ("youtube" == url_domain or "youtu" == url_domain):
+        youtube = YouTube()
+        youtube.download_and_save_song(args.url, output_dir_name)
+
     else:
         logger.warning(f"Unsupported domain {url_domain}")
 
