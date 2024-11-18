@@ -15,7 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      cookies_netscape_content: ${{ steps.cookies.outputs.cookies_netscape_content }}
     steps:
+      - uses: actions/checkout@v4
+
       - name: Split URLs and Prepare Matrix
         id: set-matrix
         shell: bash
@@ -42,6 +45,13 @@ jobs:
           echo "matrix=$matrix_json" >> "$GITHUB_OUTPUT"
           echo "Matrix JSON: $matrix_json"
 
+      - name: Prepare cookies
+        id: cookies
+        run: |
+          echo "${{ secrets.YOUTUBE_COOKIE_RAW }}" > cookies_raw.txt
+          cookies_netscape_content=$(node utils/convert-cookies.js cookies_raw.txt)
+          echo "cookies_netscape_content=$cookies_netscape_content" >> "$GITHUB_OUTPUT"
+
   downloader:
     needs: prepare
     runs-on: ubuntu-latest
@@ -64,6 +74,7 @@ jobs:
 
       - name: Run Downloader
         run: |
+          echo "${{ needs.prepare.outputs.cookies_netscape_content }}" > cookies_netscape.txt
           python main.py "${{ matrix.url }}"
 
       - name: Upload Output
@@ -96,17 +107,3 @@ jobs:
 
       - name: Install GH CLI
         uses: dev-hanz-ops/install-gh-cli-action@v0.2.0
-
-      - name: Delete Intermediate Artifacts
-        run: |
-          # Get all artifacts for this run
-          artifacts=$(gh api -X GET /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate | jq -r '.artifacts[] | select(.name | startswith("temp-output-")) | .id')
-          echo "Artifacts to delete: $artifacts"
-
-          # Loop through each artifact ID and delete it
-          for artifact_id in $artifacts; do
-            echo "Deleting artifact ID: $artifact_id"
-            gh api -X DELETE /repos/${{ github.repository }}/actions/artifacts/$artifact_id
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

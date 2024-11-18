@@ -7,6 +7,7 @@ from PIL import Image
 import requests
 import yt_dlp
 
+from config.settings import Settings
 from utils.file_operations import clean_text
 
 
@@ -75,6 +76,7 @@ class YouTube:
             "ignoreerrors": True,
             "postprocessor_hooks": [self.update_meta_info_of_song],
             "outtmpl": output_dir_path + "/%(id)s.%(ext)s",
+            "cookiefile": Settings.YOUTUBE_COOKIES_FILE,
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:

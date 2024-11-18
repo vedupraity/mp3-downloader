@@ -4,14 +4,12 @@ import os
 import tldextract
 
 from config.logger import get_logger
+from config.settings import Settings
 from lib.jiosaavn import JioSaavn
 from lib.youtube import YouTube
 
 
 logger = get_logger(__name__)
-root_dir_path = os.path.dirname(os.path.abspath(__file__))
-output_dir_name = "output"
-output_dir_path = os.path.join(root_dir_path, output_dir_name)
 
 
 def get_cli_args():
@@ -35,21 +33,22 @@ def main() -> None:
     url_domain = tldextract.extract(args.url).domain
 
     if url_domain and "jiosaavn" == url_domain:
-        jiosaavn = JioSaavn()
-
         if "/song/" in args.url:
             logger.info(f"Processing jiosaavn song url: {args.url}")
 
+            jiosaavn = JioSaavn()
             song_info = jiosaavn.get_song_info_by_url(args.url)
-            jiosaavn.download_and_save_song(song_info, output_dir_path)
+            jiosaavn.download_and_save_song(song_info, Settings.OUTPUT_DIR_PATH)
         else:
             logger.warning(f"Unsupported url {args.url}")
     elif url_domain and ("youtube" == url_domain or "youtu" == url_domain):
+        logger.info(f"Processing youtube song url: {args.url}")
+
         youtube = YouTube()
-        youtube.download_and_save_song(args.url, output_dir_name)
+        youtube.download_and_save_song(args.url, Settings.OUTPUT_DIR_PATH)
 
     else:
-        logger.warning(f"Unsupported domain {url_domain}")
+        logger.warning(f"Unsupported domain {url_domain} in url {args.url}")
 
 
 if __name__ == "__main__":
