@@ -3,8 +3,11 @@ name: Run Downloader
 on:
   workflow_dispatch:
     inputs:
+      id:
+        description: "Unique ID (To identify the workflow run using Github REST API)"
+        required: true
       urls:
-        description: "Comma-separated URLs to download"
+        description: "URLs to download (Separated by semi-colon `;` if multiple)"
         required: true
 
 permissions:
@@ -12,6 +15,7 @@ permissions:
 
 jobs:
   prepare:
+    name: ID ${{ github.event.inputs.id }}
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -24,7 +28,7 @@ jobs:
         run: |
           echo "Splitting URLs..."
           urls="${{ github.event.inputs.urls }}"
-          IFS=',' read -ra ADDR <<< "$urls"
+          IFS=';' read -ra ADDR <<< "$urls"
           echo "Input URLs: ${ADDR[@]}"
 
           # Initialize an empty array for JSON objects
