@@ -41,11 +41,12 @@
                 <section>
                     <h2>MP3 Downloader</h2>
 
-                    <p>Enter multiple JioSaavn urls to download high quality MP3s with attributes and album art ✨</p>
+                    <p>Enter multiple URLs to download high-quality MP3s with attributes and album art.</p>
 
                     <textarea placeholder="Example:
 https://www.jiosaavn.com/song/thunder/CgEAVQBnYgU
-https://www.jiosaavn.com/song/another-one-bites-the-dust-remastered-2011/NBI0ckIBfXs" autofocus="true" rows="4"></textarea>
+https://www.jiosaavn.com/song/another-one-bites-the-dust-remastered-2011/NBI0ckIBfXs" autofocus="true"
+                        rows="4"></textarea>
 
                     <progress id="progress" hidden></progress>
 
@@ -53,7 +54,6 @@ https://www.jiosaavn.com/song/another-one-bites-the-dust-remastered-2011/NBI0ckI
 
                     <div class="grid">
                         <button id="submitBtn" class="outline">Submit</button>
-
                         <button id="downloadBtn" class="outline" aria-busy="true" disabled hidden>Download</button>
                     </div>
                 </section>
@@ -68,7 +68,7 @@ https://www.jiosaavn.com/song/another-one-bites-the-dust-remastered-2011/NBI0ckI
                 <small>
                     <ul>
                         <li>This is a demo using open-source projects and APIs.</li>
-                        <li>Downloading MP3 is illegal.</li>
+                        <li>Downloading copyrighted content without permission is illegal.</li>
                         <li>Use it at your own risk.</li>
                     </ul>
                 </small>
@@ -77,63 +77,36 @@ https://www.jiosaavn.com/song/another-one-bites-the-dust-remastered-2011/NBI0ckI
     </footer>
 
     <script>
-        // Delay function
-        function delay(ms) {
+        async function delay(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        // Function to reset UI messages and elements
         function resetUI() {
             const message = document.getElementById('message');
             const submitBtn = document.getElementById('submitBtn');
             const downloadBtn = document.getElementById('downloadBtn');
             const progressBar = document.getElementById('progress');
 
-            // Reset messages
             message.textContent = '';
             message.hidden = true;
-
-            // Reset buttons
             submitBtn.hidden = false;
             downloadBtn.hidden = true;
             downloadBtn.setAttribute('aria-busy', 'false');
             downloadBtn.disabled = true;
-
-            // Hide progress bar
             progressBar.hidden = true;
         }
 
-        // Function to show an info message
-        function showInfoMessage(text) {
+        function showMessage(type, text) {
             const message = document.getElementById('message');
             message.textContent = text;
-            message.className = 'info';
+            message.className = type;
             message.hidden = false;
         }
 
-        // Function to show a success message
-        function showSuccessMessage(text) {
-            const message = document.getElementById('message');
-            message.textContent = text;
-            message.className = 'success';
-            message.hidden = false;
-        }
-
-        // Function to show an error message
-        function showErrorMessage(text) {
-            const message = document.getElementById('message');
-            message.textContent = text;
-            message.className = 'error';
-            message.hidden = false;
-        }
-
-        // Function to show or hide the progress bar
         function toggleProgressBar(show) {
-            const progressBar = document.getElementById('progress');
-            progressBar.hidden = !show;
+            document.getElementById('progress').hidden = !show;
         }
 
-        // Function to show the download button with an artifact URL
         function updateDownloadButton(artifactUrl) {
             const downloadBtn = document.getElementById('downloadBtn');
             downloadBtn.hidden = false;
@@ -144,102 +117,75 @@ https://www.jiosaavn.com/song/another-one-bites-the-dust-remastered-2011/NBI0ckI
             };
         }
 
-        // Function to trigger the workflow
-        async function triggerWorkflow(urls) {
-            try {
-                const response = await fetch('http://127.0.0.1:8787/gha/mp3-downloader/trigger-workflow/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ urls }),
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Unknown error while triggering workflow');
-                }
-
-                const data = await response.json();
-                return data.message || 'Workflow triggered successfully.';
-            } catch (error) {
-                throw new Error(`Trigger Workflow Error: ${error.message}`);
-            }
-        }
-
-        // Function to fetch the workflow ID
-        async function fetchWorkflowId(datetimeRange) {
-            try {
-                const response = await fetch(
-                    `http://127.0.0.1:8787/gha/mp3-downloader/workflow-run-id-by-date?created=${encodeURIComponent(
-                        datetimeRange
-                    )}`
-                );
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch workflow ID.');
-                }
-
-                const data = await response.json();
-                if (!data.id) {
-                    throw new Error('Workflow ID not found.');
-                }
-
-                return data.id;
-            } catch (error) {
-                throw new Error(`Fetch Workflow ID Error: ${error.message}`);
-            }
-        }
-
         // Function to generate a datetime range
-        function generateDatetimeRange() {
-            const now = new Date();
-            const start = new Date(now.getTime() - 2000).toISOString(); // 2 second before
-            const end = new Date(now.getTime() + 2000).toISOString(); // 2 second after
+        function generateDatetimeRange(timeBeforeTrigger) {
+            const start = timeBeforeTrigger.toISOString();
+            const end = new Date(timeBeforeTrigger.getTime() + 2000).toISOString(); // 2 second after
             return `${start}..${end}`;
         }
 
-        // Function to poll for workflow status
+        async function triggerWorkflow(urls) {
+            const timeBeforeTrigger = new Date();
+            const response = await fetch('http://127.0.0.1:8787/gha/mp3-downloader/trigger-workflow/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ urls }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Error triggering workflow');
+            }
+
+            const data = await response.json();
+
+            return { data, timeBeforeTrigger };
+        }
+
+        async function fetchWorkflowId(datetimeRange) {
+            const uniqueJobId = localStorage.getItem('uniqueJobId');
+            if (!uniqueJobId) {
+                throw new Error('No uniqueJobId found in local storage.');
+            }
+
+            const response = await fetch(`http://127.0.0.1:8787/gha/mp3-downloader/workflow-run-id?uniqueJobId=${encodeURIComponent(uniqueJobId)}&created=${encodeURIComponent(datetimeRange)}`);
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch workflow ID.');
+            }
+
+            const data = await response.json();
+
+            if (!data.data || !data.data.id) {
+                throw new Error('Workflow ID not found.');
+            }
+
+            return data.data.id;
+        }
+
         async function pollWorkflowStatus(workflowId) {
-            const statusCheckInterval = 10000; // 10 seconds
-            const workflowUrl = `http://127.0.0.1:8787/gha/mp3-downloader/workflow-run/${workflowId}`;
+            const url = `http://127.0.0.1:8787/gha/mp3-downloader/workflow-run/${workflowId}`;
 
             while (true) {
-                try {
-                    const response = await fetch(workflowUrl);
-                    const data = await response.json();
+                const response = await fetch(url);
+                const data = await response.json();
 
-                    if (data.status === 200) {
-                        const { status, conclusion, artifactUrl } = data.data;
-
-                        if (status === 'in_progress' || status === 'queued') {
-                            showInfoMessage('We are processing your request, thank you for patience!');
-                            await delay(statusCheckInterval);
-                        } else if (status === 'completed' && conclusion === 'success' && artifactUrl) {
-                            toggleProgressBar(false);
-                            showSuccessMessage('Your downloadable link is ready!');
-                            updateDownloadButton(artifactUrl);
-                            break;
-                        } else {
-                            toggleProgressBar(false);
-                            showErrorMessage('Service crashed or workflow failed.');
-                            break;
-                        }
-                    } else {
-                        toggleProgressBar(false);
-                        showErrorMessage(`Failed to fetch workflow status: ${data.error || 'Unknown error'}`);
-                        break;
-                    }
-                } catch (error) {
-                    console.error('Polling error:', error);
+                if (data.data.status === 'in_progress') {
+                    showMessage('info', 'Downloading files at our server. Hold on a minute...');
+                    await delay(10000);
+                } else if (data.data.status === 'success') {
                     toggleProgressBar(false);
-                    showErrorMessage('An error occurred while polling the workflow status.');
+                    showMessage('success', 'Download link is ready!');
+                    updateDownloadButton(data.data.artifactUrl);
+                    break;
+                } else {
+                    toggleProgressBar(false);
+                    showMessage('error', 'Oops! Server crashed. Please reload the page and try again.');
                     break;
                 }
             }
         }
 
-        // Main function to handle workflow submission
         async function handleWorkflowSubmission() {
             resetUI();
 
@@ -247,12 +193,11 @@ https://www.jiosaavn.com/song/another-one-bites-the-dust-remastered-2011/NBI0ckI
             const urls = urlsTextarea.value.trim().split('\n').filter(Boolean);
 
             if (urls.length === 0) {
-                showErrorMessage('Please enter at least one URL.');
+                showMessage('error', 'Please enter at least one URL.');
                 return;
             }
 
             try {
-                // Hide submit button, show download button in loading state, and show progress bar
                 document.getElementById('submitBtn').hidden = true;
                 const downloadBtn = document.getElementById('downloadBtn');
                 downloadBtn.hidden = false;
@@ -260,32 +205,20 @@ https://www.jiosaavn.com/song/another-one-bites-the-dust-remastered-2011/NBI0ckI
                 downloadBtn.disabled = true;
                 toggleProgressBar(true);
 
-                // Show processing message
-                showInfoMessage('We are processing your request, thank you for your patience!');
+                showMessage('info', 'Processing your request...');
+                const { data, timeBeforeTrigger } = await triggerWorkflow(urls);
+                localStorage.setItem('uniqueJobId', data.data.uniqueJobId);
 
-                // Step 1: Trigger the workflow
-                await triggerWorkflow(urls);
-
-                // Step 2: Generate datetime range
-                const datetimeRange = generateDatetimeRange();
-
-                // Step 3: Add delay before polling
-                await delay(3000);
-
-                // Step 4: Fetch the workflow ID
+                showMessage('info', 'Obtaining download status...');
+                const datetimeRange = generateDatetimeRange(timeBeforeTrigger);
                 const workflowId = await fetchWorkflowId(datetimeRange);
-
-                // Step 5: Start polling for workflow status
                 await pollWorkflowStatus(workflowId);
             } catch (error) {
                 resetUI();
-                console.error('Error:', error);
-                toggleProgressBar(false);
-                showErrorMessage(error.message);
+                showMessage('error', error.message);
             }
         }
 
-        // Event listener for the submit button
         document.getElementById('submitBtn').addEventListener('click', handleWorkflowSubmission);
     </script>
 </body>
